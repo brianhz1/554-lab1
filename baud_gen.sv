@@ -13,11 +13,11 @@ module baud_gen
 
     always_comb begin
         case (br_cfg)
-            2'b00: load = 9'd651;  // 4800 baud * 16
-            2'b01: load = 9'd326;  // 9600 baud * 16
-            2'b10: load = 9'd163;  // 19200 baud * 16
+            2'b00: load = 10'd651;  // 4800 baud * 16
+            2'b01: load = 10'd326;  // 9600 baud * 16
+            2'b10: load = 10'd163;  // 19200 baud * 16
             // 2'b11
-            default: load = 9'd81; // 38400 baud * 16
+            default: load = 10'd81; // 38400 baud * 16
         endcase
     end
 
@@ -26,8 +26,10 @@ module baud_gen
             divisor_buffer <= load;
     end
 
-    always_ff @(posedge clk) begin
-        if (init)
+    always_ff @(posedge clk, negedge rst_n) begin
+        if (!rst_n) 
+            counter <= 0;
+        else if (counter == 0)
             counter <= divisor_buffer;
         else
             counter <= counter - 1;
