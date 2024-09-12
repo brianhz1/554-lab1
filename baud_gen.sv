@@ -2,30 +2,28 @@ module baud_gen
 (
     input clk,
     input rst_n,
-    input init,
-    input [1:0] br_cfg,
+    input write, // write to divisor buffer
+    input addr, //  0: DB low, 1: DB high
+    input [7:0] db_data, // data to write into db
     output enable // 16x selected baud rate
 );
 
-    logic [9:0] counter;   // down counter
-    logic [9:0] load;  // value to load into divisor buffer
-    logic [9:0] divisor_buffer; // value to load into down counter
+    logic [15:0] counter;   // down counter
+    logic [15:0] load;  // value to load into divisor buffer
+    logic [15:0] divisor_buffer; // value to load into down counter 
 
-    always_comb begin
-        case (br_cfg)
-            2'b00: load = 10'd651;  // 4800 baud * 16
-            2'b01: load = 10'd326;  // 9600 baud * 16
-            2'b10: load = 10'd163;  // 19200 baud * 16
-            // 2'b11
-            default: load = 10'd81; // 38400 baud * 16
-        endcase
-    end
-
+    // division buffer
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n)
-            divisor_buffer <= load;
+            divisor_buffer <= 16'd162;
+        else if (write)
+            if (addr)
+                divisor_buffer[15:8] <= db_data;
+            else 
+                divisor_buffer[7:0] <= db_data;
     end
 
+    // down counter
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n) 
             counter <= 0;
