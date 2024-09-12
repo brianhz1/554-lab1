@@ -9,13 +9,14 @@ module spart_tx
     output TX
 );
 
-    typedef enum logic {IDLE, TRANSMIT} state_t;
+    typedef enum logic [1:0] {IDLE, WAIT, TRANSMIT} state_t;
     state_t state, next_state; 
     logic [8:0] tx_shift_reg; 
     logic [3:0] baud_counter; // counts enable to generate baud clk
     logic [3:0] shift_counter; // counts number of bits shifted
     logic init; // initializes counters, sets shift register
     logic shift; // shifts out next bit
+    logic inc; // increments baud counter
 
     // state ff
     always_ff @(posedge clk, negedge rst_n) begin
@@ -31,21 +32,31 @@ module spart_tx
         init = 1'b0;
         shift = 1'b0;
         TBR = 1'b0;
+        inc = 1'b0;
 
         case (state)
+            WAIT: begin // waits for next enable signal
+                if (enable)
+                    next_state = TRANSMIT;
+            end
+
             TRANSMIT: begin
-                if (&baud_counter)
-                    shift = 1'b1;
-                if (shift_counter == 4'd10) begin
-                    next_state = IDLE;
+                if (&baud_counter & enable) begin
+                    if (shift_counter == 4'd9)
+                        next_state = IDLE;
+                    else
+                        shift = 1'b1;
                 end
+
+                if (enable)
+                    inc = 1'b1;
             end
 
             default: begin // IDLE state
                 TBR = 1'b1;
                 if (write) begin
                     init = 1'b1;
-                    next_state = TRANSMIT;
+                    next_state = WAIT;
                 end
             end
         endcase
@@ -65,7 +76,7 @@ module spart_tx
     always_ff @(posedge clk) begin
         if (init)
             baud_counter <= 0;
-        else if (enable)
+        else if (inc)
             baud_counter <= baud_counter + 1;
 
     end
