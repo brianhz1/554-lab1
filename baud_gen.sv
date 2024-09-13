@@ -2,9 +2,9 @@ module baud_gen
 (
     input clk,
     input rst_n,
-    input write, // write to divisor buffer
-    input addr, //  0: DB low, 1: DB high
-    input [7:0] db_data, // data to write into db
+    input iorw, // write when low
+    input [1:0] addr, //  0: DB low, 1: DB high
+    input [7:0] bus_data, // data from data bus
     output enable // 16x selected baud rate
 );
 
@@ -16,11 +16,11 @@ module baud_gen
     always_ff @(posedge clk, negedge rst_n) begin
         if (!rst_n)
             divisor_buffer <= 16'd162;
-        else if (write)
-            if (addr)
-                divisor_buffer[15:8] <= db_data;
-            else 
-                divisor_buffer[7:0] <= db_data;
+        else if (!iorw)
+            if (addr == 2'b11)
+                divisor_buffer[15:8] <= bus_data;
+            else if (addr == 2'b10)
+                divisor_buffer[7:0] <= bus_data;
     end
 
     // down counter
