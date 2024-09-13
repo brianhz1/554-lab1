@@ -3,14 +3,17 @@ module spart_rx
     input clk,
     input rst_n,
     input enable,   // 16x baud freq
+    input [1:0] addr,
+    input iorw,
+    input IOCS,
     input RX,
     output logic RDA, // receive data available
-    output [7:0] rx_data
+    inout [7:0] rx_data
 );
 
     typedef enum logic [1:0] {IDLE, START, RECEIVE, STOP} state_t;
-    state_t state, next_state; 
-    logic [7:0] rx_shift_reg; 
+    state_t state, next_state;
+    logic [7:0] rx_shift_reg;
     logic [3:0] baud_counter; // counts enable to generate baud clk
     logic [3:0] bit_counter; // counts number of bits received
     logic init, shift, inc; // signals to initialize, shift and increment counters
@@ -30,6 +33,7 @@ module spart_rx
         shift = 1'b0;
         RDA = 1'b0;
         inc = 1'b0;
+        rx_data_valid = 1'b0;
 
         case (state)
             START: begin
@@ -44,15 +48,16 @@ module spart_rx
                     else
                         shift = 1'b1;
                 end
-
                 if (enable)
                     inc = 1'b1;
             end
 
             STOP: begin
                 if (&baud_counter & enable) begin
-                    if (RX) // stop bit detected
+                    if (RX) begin // stop bit detected
                         next_state = IDLE;
+                        rx_data_valid = 1'b1;  // mark data as valid
+                    end
                 end
             end
 
@@ -89,8 +94,24 @@ module spart_rx
             bit_counter <= bit_counter + 1;
     end
 
-    // Assigning the received data
-    assign rx_data = rx_shift_reg;
-    assign RDA = (state == STOP && RX);
+    // Data availability logic (RDA)
+    always_ff @(posedge clk, negedge rst_n) begin
+        if (!rst_n)
+            RDA <= 1'b0;
+        else if (rx_data_valid)
+            RDA <= 1'b1;  // data is ready after STOP state
+        else if (iorw & IOCS & (addr == 2'b01))  // clear RDA when read occurs
+            RDA <= 1'b0;
+    end
+
+    // Assigning received data to rx_data when read
+    always_ff @(posedge clk, negedge rst_n) begin
+        if (!rst_n)
+            rx_data <= 8'bZ;  // tri-state for bidirectional bus
+        else if (iorw & IOCS & (addr == 2'b01))  // read from rx_shift_reg when selected
+            rx_data <= rx_shift_reg;
+        else
+            rx_data <= 8'bZ;  // tri-state when not reading
+    end
 
 endmodule
