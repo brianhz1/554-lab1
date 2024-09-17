@@ -4,7 +4,7 @@ module spart_tx
     input rst_n,
     input enable,   // 16x baud freq
     input [1:0] addr,
-    input [7:0] tx_data,
+    input [7:0] tx_data, // internal databus
     input iorw,    // write when low
     input iocs,
     output logic TBR, // transmit buffer ready

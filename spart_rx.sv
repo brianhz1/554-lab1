@@ -8,7 +8,7 @@ module spart_rx
     input IOCS,
     input RX,
     output logic RDA, // receive data available
-    inout [7:0] rx_data
+    inout [7:0] rx_data // interal databus
 );
 
     typedef enum logic [1:0] {IDLE, START, RECEIVE, STOP} state_t;

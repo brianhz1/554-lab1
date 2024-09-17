@@ -6,7 +6,7 @@ module baud_gen
     input iocs,
     input [1:0] addr, //  0: DB low, 1: DB high
     output enable, // 16x selected baud rate
-    inout [7:0] bus_data // data bus
+    inout [7:0] bus_data // data bus internal
 );
 
     logic [15:0] counter;   // down counter
