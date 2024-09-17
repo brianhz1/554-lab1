@@ -17,6 +17,13 @@ module spart_rx
     logic [3:0] baud_counter; // counts enable to generate baud clk
     logic [3:0] bit_counter; // counts number of bits received
     logic init, shift, inc; // signals to initialize, shift and increment counters
+    logic rx_sync1, rx_sync2; // synchornizer
+
+    // double synchronizer
+    always_ff @(posedge clk) begin
+        rx_sync1 <= RX;
+        rx_sync2 <= rx_sync1;
+    end
 
     // state ff
     always_ff @(posedge clk, negedge rst_n) begin
@@ -37,7 +44,7 @@ module spart_rx
 
         case (state)
             START: begin
-                if (enable & !RX) // start bit detected
+                if (enable & !rx_sync2) // start bit detected
                     next_state = RECEIVE;
             end
 
@@ -54,7 +61,7 @@ module spart_rx
 
             STOP: begin
                 if (&baud_counter & enable) begin
-                    if (RX) begin // stop bit detected
+                    if (rx_sync2) begin // stop bit detected
                         next_state = IDLE;
                         rx_data_valid = 1'b1;  // mark data as valid
                     end
@@ -62,7 +69,7 @@ module spart_rx
             end
 
             default: begin // IDLE state
-                if (!RX) begin // detect start bit
+                if (!rx_sync2) begin // detect start bit
                     init = 1'b1;
                     next_state = START;
                 end
@@ -75,7 +82,7 @@ module spart_rx
         if (!rst_n)
             rx_shift_reg <= '0;
         else if (shift)
-            rx_shift_reg <= {RX, rx_shift_reg[7:1]};
+            rx_shift_reg <= {rx_sync2, rx_shift_reg[7:1]};
     end
 
     // baud_counter ff
