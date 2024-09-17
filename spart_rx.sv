@@ -100,18 +100,11 @@ module spart_rx
             RDA <= 1'b0;
         else if (rx_data_valid)
             RDA <= 1'b1;  // data is ready after STOP state
-        else if (iorw & IOCS & (addr == 2'b01))  // clear RDA when read occurs
+        else if ((iorw == 1'b0) & IOCS & (addr == 2'b00))  // clear RDA when read occurs
             RDA <= 1'b0;
     end
 
     // Assigning received data to rx_data when read
-    always_ff @(posedge clk, negedge rst_n) begin
-        if (!rst_n)
-            rx_data <= 8'bZ;  // tri-state for bidirectional bus
-        else if (iorw & IOCS & (addr == 2'b01))  // read from rx_shift_reg when selected
-            rx_data <= rx_shift_reg;
-        else
-            rx_data <= 8'bZ;  // tri-state when not reading
-    end
+    assign rx_data = (IOCS && (iorw == 1'b0) && (addr == 2'b00)) ? rx_shift_reg : 8'hzz;
 
 endmodule
