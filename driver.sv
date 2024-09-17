@@ -29,7 +29,7 @@ module driver(
     inout [7:0] databus
 );
 
-    typedef enum logic [3:0] {IDLE, DB_LOW, DB_HIGH, RECEIVE, TRANSMIT} state_t;
+    typedef enum logic [3:0] {IDLE, DB_LOW, DB_HIGH, RECEIVE, TRANSMIT, TBR_WAIT} state_t;
     state_t state, next_state;
 
     logic [1:0] br_cfg_curr; // compare with br_cfg to notice change
@@ -107,8 +107,12 @@ module driver(
             RECEIVE: begin
                 ioaddr = 2'b00;
                 w_db = 1'b1;
-                next_state = TRANSMIT;
+                next_state = TBR_WAIT;
             end
+
+            TBR_WAIT:
+                if (tbr)
+                    next_state = TRANSMIT;
 
             TRANSMIT: begin
                 iorw = 1'b0;
