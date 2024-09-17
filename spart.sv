@@ -33,16 +33,6 @@ module spart(
     spart_tx iSPART_TX(.clk(clk), .rst_n(rst), .enable(enable), .addr(ioaddr), .tx_data(tx_data), .iorw(iorw), .TBR(tbr), .TX(txd));
 
     // spart receive
-    input clk,
-    input rst_n,
-    input enable,   // 16x baud freq
-    input [1:0] addr,
-    input iorw,
-    input IOCS,
-    input RX,
-    output logic RDA, // receive data available
-    inout [7:0] rx_data
-
     spart_rx iSPART_RX(.clk(clk), .rst_n(rst_n), .enable(enable), .addr(ioaddr), .iorw(iorw), .IOCS(iocs), .RX(rxd), .RDA(rda), .rx_data(databus));
 
     // baud generator
