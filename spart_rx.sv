@@ -107,11 +107,11 @@ module spart_rx
             RDA <= 1'b0;
         else if (rx_data_valid)
             RDA <= 1'b1;  // data is ready after STOP state
-        else if ((iorw == 1'b0) & IOCS & (addr == 2'b00))  // clear RDA when read occurs
+        else if (iorw & IOCS & (addr == 2'b00))  // clear RDA when read occurs
             RDA <= 1'b0;
     end
 
     // Assigning received data to rx_data when read
-    assign rx_data = (IOCS && (iorw == 1'b0) && (addr == 2'b00)) ? rx_shift_reg : 8'hzz;
+    assign rx_data = (IOCS && iorw && (addr == 2'b00)) ? rx_shift_reg : 8'hzz;
 
 endmodule

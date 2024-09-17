@@ -6,6 +6,7 @@ module spart_tx
     input [1:0] addr,
     input [7:0] tx_data,
     input iorw,    // write when low
+    input iocs,
     output logic TBR, // transmit buffer ready
     output TX
 );
@@ -55,7 +56,7 @@ module spart_tx
 
             default: begin // IDLE state
                 TBR = 1'b1;
-                if (!iorw & (addr == 2'b00)) begin
+                if (!iorw & (addr == 2'b00) && iocs) begin
                     init = 1'b1;
                     next_state = WAIT;
                 end

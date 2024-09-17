@@ -30,13 +30,13 @@ module spart(
     input rxd
 );
     // spart transfer
-    spart_tx iSPART_TX(.clk(clk), .rst_n(rst), .enable(enable), .addr(ioaddr), .tx_data(tx_data), .iorw(iorw), .TBR(tbr), .TX(txd));
+    spart_tx iSPART_TX(.clk(clk), .rst_n(rst), .enable(enable), .addr(ioaddr), .iocs(iocs), .tx_data(tx_data), .iorw(iorw), .TBR(tbr), .TX(txd));
 
     // spart receive
     spart_rx iSPART_RX(.clk(clk), .rst_n(rst_n), .enable(enable), .addr(ioaddr), .iorw(iorw), .IOCS(iocs), .RX(rxd), .RDA(rda), .rx_data(databus));
 
     // baud generator
-    baud_gen iBAUD_GEN(.clk(clk), .rst_n(rst), .iorw(iorw), .addr(ioaddr), .db_data(db_data), .enable(enable));
+    baud_gen iBAUD_GEN(.clk(clk), .rst_n(rst), .iorw(iorw), .iocs(iocs), .addr(ioaddr), .db_data(db_data), .enable(enable));
 
     // bus interface
     
