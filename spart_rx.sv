@@ -17,7 +17,8 @@ module spart_rx
     logic [3:0] baud_counter; // counts enable to generate baud clk
     logic [3:0] bit_counter; // counts number of bits received
     logic init, shift, inc; // signals to initialize, shift and increment counters
-    logic rx_sync1, rx_sync2; // synchornizer
+    logic rx_sync1, rx_sync2; // synchronizer
+    logic rx_data_valid;
 
     // double synchronizer
     always_ff @(posedge clk) begin
@@ -38,7 +39,6 @@ module spart_rx
         next_state = state;
         init = 1'b0;
         shift = 1'b0;
-        RDA = 1'b0;
         inc = 1'b0;
         rx_data_valid = 1'b0;
 
@@ -66,10 +66,12 @@ module spart_rx
                         rx_data_valid = 1'b1;  // mark data as valid
                     end
                 end
+                if (enable)
+                    inc = 1'b1;
             end
 
             default: begin // IDLE state
-                if (!rx_sync2) begin // detect start bit
+                if (!rx_sync2 && !RDA) begin // detect start bit
                     init = 1'b1;
                     next_state = START;
                 end

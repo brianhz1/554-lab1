@@ -48,6 +48,7 @@ wire rst = ~KEY[0];
 // LED[9] : indicator for RX signal
 // LED[8] : indicator for TX signal
 // LED[0] : indicator for rst signal 
+
 assign LEDR = {~rxd,~txd,7'b0,rst};
 
 // GPIO[3] as TX output, GPIO[5] as RX input

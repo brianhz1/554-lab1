@@ -7,6 +7,7 @@ module spart_tb ();
     logic [9:0] sw; // sw[9:8] select baud rate
     wire [35:0] gpio; // GPIO[3] as TX output, GPIO[5] as RX input
     logic [1:0] br_cfg;
+    logic [7:0] bus_wdata;
 
     // testbench spart controls
     wire [7:0] databus;
@@ -16,7 +17,7 @@ module spart_tb ();
     logic db_w; // drive databus when high
     logic [7:0] db_data; // databus to drive databus
 
-    lab1_spart iDUT(.CLOCK_50(clk), .KEY(key), .GPIO(gpio));
+    lab1_spart iDUT(.CLOCK_50(clk), .KEY(key), .GPIO(gpio), .SW(sw));
     spart spart_tb(.clk(clk),
                 .rst(rst_n),
                 .iocs(iocs),
@@ -49,8 +50,13 @@ module spart_tb ();
         #1;
         rst_n = 1'b1;
 
-        repeat(10) transaction();
-
+        repeat(5) transaction();
+        set_baud(2'b00);
+        repeat(5) transaction();
+        set_baud(2'b01);
+        repeat(5) transaction();
+        set_baud(2'b11);
+        repeat(5) transaction();
         #100;
         $stop();
     end
@@ -58,6 +64,7 @@ module spart_tb ();
     always
         #20 clk = ~clk;
 
+    // sends a byte of data and reads the received data
     task automatic transaction();
         bit [7:0] data;
         data = $random();
@@ -71,26 +78,87 @@ module spart_tb ();
         iorw = 0;
         db_data = data;
         db_w = 1;
-
-        // wait for response
         @(posedge clk);
         #1;
         ioaddr = 2'b01;
         iorw = 1;
         db_w = 0;
-        @(posedge rda)
+
+        fork
+            // wait for response
+            begin
+                @(posedge rda);
+                disable timeout;
+                @(posedge clk);
+                #1;
+
+                // rx buffer read
+                if (!rda)
+                    $display("ERROR: RDA unset before read");
+                ioaddr = 2'b00;
+                iorw = 1;
+                #1;
+                $display("BR: %h, Data sent: %h, Data received: %h", br_cfg, data, databus);
+
+                @(posedge clk);
+                #1;
+                ioaddr = 2'b01;
+            end 
+            // timeout
+            begin : timeout
+                #40000000;
+                $display("ERROR: No signal received");
+                $stop();
+            end : timeout
+        join
+
         @(posedge clk);
         #1;
+    endtask
 
-        // rx buffer read
-        if (!rda)
-            $display("ERROR: RDA unset without read");
-        ioaddr = 2'b00;
+    // sets baud rate on DUT and spart_tb
+    task automatic set_baud (bit [1:0] br_new);
+        @(posedge clk)
+        #1;
+        br_cfg = br_new;
+        #1;
+        rst_n = 1'b0;
+        #1;
+        rst_n = 1'b1;
+        @(posedge clk)
+        #1;
+
+        case (br_cfg)  // old: br_cfg_curr
+            2'b00: bus_wdata = 8'h8A;  // 4800 baud * 16
+            2'b01: bus_wdata = 8'h45;  // 9600 baud * 16
+            2'b10: bus_wdata = 8'hA2;  // 19200 baud * 16
+            2'b11: bus_wdata = 8'h50; // 38400 baud * 16
+        endcase
+        ioaddr = 2'b10;
+        iorw = 0;
+        db_data = bus_wdata;
+        db_w = 1;
+            
+        @(posedge clk)
+        #1;
+        case (br_cfg)  // old: br_cfg_curr
+            2'b00: bus_wdata = 8'h02;  // 4800 baud * 16
+            2'b01: bus_wdata = 8'h01;  // 9600 baud * 16
+            2'b10: bus_wdata = 8'h00;  // 19200 baud * 16
+            2'b11: bus_wdata = 8'h00; // 38400 baud * 16
+        endcase
+        ioaddr = 2'b11;
+        iorw = 0;
+        db_data = bus_wdata;
+        db_w = 1;
+            
+        @(posedge clk)
+        #1;
+        ioaddr = 2'b01;
         iorw = 1;
-        #1;
-        $display("Data sent: %h, Data received: %h", data, databus);
+        db_w = 0;
 
-        @(posedge clk);
+        @(posedge clk)
         #1;
     endtask
 endmodule

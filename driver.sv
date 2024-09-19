@@ -40,7 +40,7 @@ module driver(
     // state ff
     always_ff @(posedge clk, negedge rst) begin
         if (!rst)
-            state <= IDLE;
+            state <= DB_LOW; // old: IDLE
         else
             state <= next_state;
     end
@@ -75,7 +75,7 @@ module driver(
 
         case (state)
             DB_LOW: begin
-                case (br_cfg_curr)
+                case (br_cfg)  // old: br_cfg_curr
                     2'b00: bus_wdata = 8'h8A;  // 4800 baud * 16
                     2'b01: bus_wdata = 8'h45;  // 9600 baud * 16
                     2'b10: bus_wdata = 8'hA2;  // 19200 baud * 16
@@ -90,7 +90,7 @@ module driver(
             end
 
             DB_HIGH: begin
-                case (br_cfg_curr)
+                case (br_cfg)  // old: br_cfg_curr
                     2'b00: bus_wdata = 8'h02;  // 4800 baud * 16
                     2'b01: bus_wdata = 8'h01;  // 9600 baud * 16
                     2'b10: bus_wdata = 8'h00;  // 19200 baud * 16
@@ -123,11 +123,12 @@ module driver(
             end
 
             default: begin // IDLE
-                if (br_cfg != br_cfg_curr) begin
-                    next_state = DB_LOW;
-                    new_br_cfg = 1;
-                end
-                else if (rda)
+                // if (br_cfg != br_cfg_curr) begin
+                //     next_state = DB_LOW;
+                //     new_br_cfg = 1;
+                // end
+                // else 
+                if (rda)
                     next_state = RECEIVE;
             end
         endcase
